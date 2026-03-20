@@ -1,20 +1,16 @@
 name: thunder_music
-version: 1.0.0+1
-description: A Flutter app for Thunder Music
+description: A Flutter project for Thunder Music
 publish_to: "none"
+version: 1.0.0+1
 
 environment:
   sdk: ">=2.18.0 <4.0.0"
-  flutter: ">=3.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.2
   http: ^0.13.6
-  flutter_secure_storage: ^8.0.0
-  flutter_web_auth_2: ^5.0.1
-  crypto: ^3.0.2
+  cupertino_icons: ^1.0.5
 
 dev_dependencies:
   flutter_test:
