@@ -1,12 +1,11 @@
 // lib/main.dart
-// Single-file Thunder Music app with runtime token dialog.
-// Add to pubspec.yaml: http: ^0.13.6, cupertino_icons: ^1.0.5
-// Run: flutter pub get && flutter run -d chrome
+// Thunder Music app with runtime token dialog.
+// Dependencies in pubspec.yaml: http: ^0.13.6, cupertino_icons: ^1.0.5
+// Run: flutter pub get && flutter run
 // Before testing: obtain a Spotify access token and paste it via the key icon.
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -32,9 +31,9 @@ class ThunderMusicApp extends StatelessWidget {
   }
 }
 
-/// Spotify helper. For quick testing paste a token into SpotifyApi.accessToken
+/// Spotify helper
 class SpotifyApi {
-  // For quick testing you can set a token here, but prefer pasting at runtime.
+  /// Paste a token here for quick testing, or use the runtime dialog.
   static String accessToken = '<PASTE_SPOTIFY_ACCESS_TOKEN_HERE>';
 
   static Future<List<Map<String, dynamic>>> searchTracks(String query) async {
@@ -49,30 +48,22 @@ class SpotifyApi {
       'limit': '20',
     });
 
-    http.Response resp;
-    try {
-      resp = await http.get(url, headers: {
-        'Authorization': 'Bearer $accessToken',
-        'Accept': 'application/json',
-      }).timeout(const Duration(seconds: 10));
-    } on SocketException {
-      throw Exception('Network error. Check your connection.');
-    } on TimeoutException {
-      throw Exception('Request timed out. Try again.');
-    }
+    final resp = await http.get(url, headers: {
+      'Authorization': 'Bearer $accessToken',
+      'Accept': 'application/json',
+    }).timeout(const Duration(seconds: 10));
 
     if (resp.statusCode != 200) {
-      String message = 'Spotify search failed: ${resp.statusCode}';
+      // Try to surface a helpful message
       try {
         final body = jsonDecode(resp.body);
         if (body is Map && body['error'] != null) {
           final err = body['error'];
-          message = 'Spotify error: ${err['message'] ?? resp.body}';
-        } else {
-          message = 'Spotify error: ${resp.body}';
+          final msg = err['message'] ?? resp.body;
+          throw Exception('Spotify error ${resp.statusCode}: $msg');
         }
       } catch (_) {}
-      throw Exception(message);
+      throw Exception('Spotify error ${resp.statusCode}: ${resp.body}');
     }
 
     final data = jsonDecode(resp.body) as Map<String, dynamic>;
@@ -108,10 +99,9 @@ class _ThunderMusicHomeState extends State<ThunderMusicHome> {
   bool _loading = false;
   String? _error;
 
-  // Playback state (mock)
   Map<String, dynamic>? _currentTrack;
   bool _isPlaying = false;
-  double _position = 0.0; // 0.0 - 1.0
+  double _position = 0.0;
   Timer? _progressTimer;
   bool _shuffle = false;
   bool _repeat = false;
@@ -120,7 +110,6 @@ class _ThunderMusicHomeState extends State<ThunderMusicHome> {
   Future<void> _search() async {
     final q = _searchController.text.trim();
     if (q.isEmpty) return;
-    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -128,35 +117,23 @@ class _ThunderMusicHomeState extends State<ThunderMusicHome> {
     });
     try {
       final tracks = await SpotifyApi.searchTracks(q);
-      if (!mounted) return;
-      setState(() {
-        _results = tracks;
-      });
+      setState(() => _results = tracks);
     } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-      });
+      setState(() => _error = e.toString());
     } finally {
-      if (mounted) {
-        setState(() => _loading = false);
-      }
+      setState(() => _loading = false);
     }
   }
 
   void _startPlayback(Map<String, dynamic> track) {
     _stopProgress();
-    if (!mounted) return;
     setState(() {
       _currentTrack = track;
       _isPlaying = true;
       _position = 0.0;
     });
     _progressTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) {
-        _stopProgress();
-        return;
-      }
+      if (!mounted) return;
       setState(() {
         _position += 0.01;
         if (_position >= 1.0) {
@@ -177,16 +154,10 @@ class _ThunderMusicHomeState extends State<ThunderMusicHome> {
   }
 
   void _togglePlayPause() {
-    if (!mounted) return;
-    setState(() {
-      _isPlaying = !_isPlaying;
-    });
+    setState(() => _isPlaying = !_isPlaying);
     if (_isPlaying && _progressTimer == null) {
       _progressTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (!mounted) {
-          _stopProgress();
-          return;
-        }
+        if (!mounted) return;
         setState(() {
           _position += 0.01;
           if (_position >= 1.0) {
@@ -234,14 +205,7 @@ class _ThunderMusicHomeState extends State<ThunderMusicHome> {
     _startPlayback(_results[prevIndex]);
   }
 
-  @override
-  void dispose() {
-    _stopProgress();
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  // --- Token dialog: paste token at runtime ---
+  // Token dialog
   void _showSetTokenDialog() {
     final controller = TextEditingController(text: SpotifyApi.accessToken);
     showDialog(
@@ -263,8 +227,9 @@ class _ThunderMusicHomeState extends State<ThunderMusicHome> {
               final token = controller.text.trim();
               if (token.isNotEmpty) {
                 SpotifyApi.accessToken = token;
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(const SnackBar(content: Text('Token saved')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Token saved')),
+                );
               }
               Navigator.of(ctx).pop();
             },
@@ -275,10 +240,15 @@ class _ThunderMusicHomeState extends State<ThunderMusicHome> {
     );
   }
 
+  String _formatTime(double seconds) {
+    final s = seconds.round();
+    final m = (s ~/ 60).toString().padLeft(2, '0');
+    final sec = (s % 60).toString().padLeft(2, '0');
+    return '$m:$sec';
+  }
+
   Widget _buildNowPlaying() {
-    if (_currentTrack == null) {
-      return const SizedBox.shrink();
-    }
+    if (_currentTrack == null) return const SizedBox.shrink();
     final track = _currentTrack!;
     return Column(
       children: [
@@ -290,18 +260,8 @@ class _ThunderMusicHomeState extends State<ThunderMusicHome> {
                 borderRadius: BorderRadius.circular(8),
                 child: track['image'] != null &&
                         (track['image'] as String).isNotEmpty
-                    ? Image.network(
-                        track['image'] as String,
-                        width: 84,
-                        height: 84,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) {
-                          return Container(
-                              width: 84,
-                              height: 84,
-                              color: Colors.grey.shade300);
-                        },
-                      )
+                    ? Image.network(track['image'] as String,
+                        width: 84, height: 84, fit: BoxFit.cover)
                     : Container(
                         width: 84, height: 84, color: Colors.grey.shade300),
               ),
@@ -340,8 +300,7 @@ class _ThunderMusicHomeState extends State<ThunderMusicHome> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(_formatTime(
-                      _position * 180)), // assume 3:00 track for demo
+                  Text(_formatTime(_position * 180)), // demo duration
                   Text(_formatTime(180)),
                 ],
               ),
@@ -355,16 +314,12 @@ class _ThunderMusicHomeState extends State<ThunderMusicHome> {
             children: [
               IconButton(
                 icon: Icon(_shuffle ? Icons.shuffle_on : Icons.shuffle),
-                onPressed: () {
-                  if (!mounted) return;
-                  setState(() => _shuffle = !_shuffle);
-                },
+                onPressed: () => setState(() => _shuffle = !_shuffle),
               ),
               IconButton(
-                icon: const Icon(Icons.skip_previous),
-                iconSize: 36,
-                onPressed: _previousTrack,
-              ),
+                  icon: const Icon(Icons.skip_previous),
+                  iconSize: 36,
+                  onPressed: _previousTrack),
               IconButton(
                 icon: Icon(_isPlaying
                     ? Icons.pause_circle_filled
@@ -373,16 +328,12 @@ class _ThunderMusicHomeState extends State<ThunderMusicHome> {
                 onPressed: _togglePlayPause,
               ),
               IconButton(
-                icon: const Icon(Icons.skip_next),
-                iconSize: 36,
-                onPressed: _nextTrack,
-              ),
+                  icon: const Icon(Icons.skip_next),
+                  iconSize: 36,
+                  onPressed: _nextTrack),
               IconButton(
                 icon: Icon(_repeat ? Icons.repeat_on : Icons.repeat),
-                onPressed: () {
-                  if (!mounted) return;
-                  setState(() => _repeat = !_repeat);
-                },
+                onPressed: () => setState(() => _repeat = !_repeat),
               ),
             ],
           ),
@@ -391,11 +342,11 @@ class _ThunderMusicHomeState extends State<ThunderMusicHome> {
     );
   }
 
-  String _formatTime(double seconds) {
-    final s = seconds.round();
-    final m = (s ~/ 60).toString().padLeft(2, '0');
-    final sec = (s % 60).toString().padLeft(2, '0');
-    return '$m:$sec';
+  @override
+  void dispose() {
+    _stopProgress();
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -415,7 +366,7 @@ class _ThunderMusicHomeState extends State<ThunderMusicHome> {
       body: SafeArea(
         child: Column(
           children: [
-            // Rounded search bar
+            // Search bar
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -461,7 +412,7 @@ class _ThunderMusicHomeState extends State<ThunderMusicHome> {
                 child: Text(_error!, style: const TextStyle(color: Colors.red)),
               ),
 
-            // Results list
+            // Results
             Expanded(
               child: _results.isEmpty
                   ? Center(
@@ -483,12 +434,10 @@ class _ThunderMusicHomeState extends State<ThunderMusicHome> {
                                     width: 56,
                                     height: 56,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) {
-                                      return Container(
-                                          width: 56,
-                                          height: 56,
-                                          color: Colors.grey.shade300);
-                                    },
+                                    errorBuilder: (_, __, ___) => Container(
+                                        width: 56,
+                                        height: 56,
+                                        color: Colors.grey.shade300),
                                   ),
                                 )
                               : Container(
@@ -507,7 +456,7 @@ class _ThunderMusicHomeState extends State<ThunderMusicHome> {
                     ),
             ),
 
-            // Now playing area (if any)
+            // Now playing area
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
               child: _currentTrack != null
