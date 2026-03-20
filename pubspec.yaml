@@ -1,47 +1,44 @@
-name: Build and Deploy Flutter Web to GitHub Pages
+name: thunder_music
+description: "Thunder Music - A Flutter app to search and play songs using Spotify API."
 
-on:
-  push:
-    branches:
-      - main
+publish_to: 'none'
 
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+version: 1.0.0+1
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: 'stable'
+environment:
+  sdk: ">=3.0.0 <4.0.0"
 
-      - name: Cache Pub packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.pub-cache
-          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pub-
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  http: ^0.13.6
+  crypto: ^3.0.2
+  flutter_web_auth_2: ^2.0.0
+  flutter_secure_storage: ^8.0.0
+  audioplayers: ^6.0.0
 
-      - name: Install dependencies
-        run: flutter pub get
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.0
 
-      - name: Build Flutter web (auto base-href)
-        env:
-          REPO_NAME: ${{ github.event.repository.name }}
-        run: |
-          if [[ "${{ github.repository }}" == *".github.io"* ]]; then
-            echo "User/Org page detected; building with base href /"
-            flutter build web --release --base-href /
-          else
-            echo "Project page detected; building with base href /${REPO_NAME}/"
-            flutter build web --release --base-href /${REPO_NAME}/
-          fi
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icon/
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build/web
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/thunder.png"
+
+flutter_native_splash:
+  color: "#000000"
+  image: assets/icon/thunder.png
+  background_image: assets/icon/thunder.png
+  android: true
+  ios: true
+  fullscreen: true
