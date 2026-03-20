@@ -1,7 +1,8 @@
-// FILE: lib/main.dart
-// Single-file Thunder Music app (search Spotify + mock playback).
-// Before running: add `http: ^0.13.6` to pubspec.yaml and run `flutter pub get`.
-// Also replace SpotifyApi.accessToken with a valid token for testing.
+// lib/main.dart
+// Single-file Thunder Music app with runtime token dialog.
+// Add to pubspec.yaml: http: ^0.13.6, cupertino_icons: ^1.0.5
+// Run: flutter pub get && flutter run -d chrome
+// Before testing: obtain a Spotify access token and paste it via the key icon.
 
 import 'dart:async';
 import 'dart:convert';
@@ -31,13 +32,11 @@ class ThunderMusicApp extends StatelessWidget {
   }
 }
 
-/// Small Spotify helper. For quick testing paste a temporary token into accessToken.
-/// For production implement OAuth/PKCE and token refresh.
+/// Spotify helper. For quick testing paste a token into SpotifyApi.accessToken
 class SpotifyApi {
+  // For quick testing you can set a token here, but prefer pasting at runtime.
   static String accessToken = '<PASTE_SPOTIFY_ACCESS_TOKEN_HERE>';
 
-  /// Search tracks by query. Returns a list of maps with keys:
-  /// 'id', 'name', 'artists', 'album', 'image', 'uri'
   static Future<List<Map<String, dynamic>>> searchTracks(String query) async {
     if (accessToken.isEmpty || accessToken.startsWith('<')) {
       throw Exception(
@@ -242,6 +241,40 @@ class _ThunderMusicHomeState extends State<ThunderMusicHome> {
     super.dispose();
   }
 
+  // --- Token dialog: paste token at runtime ---
+  void _showSetTokenDialog() {
+    final controller = TextEditingController(text: SpotifyApi.accessToken);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Set Spotify Access Token'),
+        content: TextField(
+          controller: controller,
+          decoration:
+              const InputDecoration(hintText: 'Paste access token here'),
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              final token = controller.text.trim();
+              if (token.isNotEmpty) {
+                SpotifyApi.accessToken = token;
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(const SnackBar(content: Text('Token saved')));
+              }
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildNowPlaying() {
     if (_currentTrack == null) {
       return const SizedBox.shrink();
@@ -371,6 +404,13 @@ class _ThunderMusicHomeState extends State<ThunderMusicHome> {
       appBar: AppBar(
         title: const Text('Thunder Music'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.vpn_key),
+            tooltip: 'Set Spotify token',
+            onPressed: _showSetTokenDialog,
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
