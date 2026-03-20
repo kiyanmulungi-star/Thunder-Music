@@ -1,0 +1,44 @@
+name: thunder_music
+description: "Thunder Music - A Flutter app to search and play songs using Spotify API."
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  http: ^0.13.6
+  crypto: ^3.0.2
+  flutter_web_auth_2: ^2.0.0
+  flutter_secure_storage: ^8.0.0
+  audioplayers: ^6.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icon/thunder.png
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/thunder.png"
+
+flutter_native_splash:
+  color: "#000000"
+  image: assets/icon/thunder.png
+  background_image: assets/icon/thunder.png
+  android: true
+  ios: true
+  fullscreen: true
